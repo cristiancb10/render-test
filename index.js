@@ -5,7 +5,8 @@ const express = require('express') //Se importa express, siendo que esta vez es 
 const app = express() //que se usa para crear una aplicacion express almacenada en app
 
 app.use(cors())//SE INSTALA NPM INSTALL CORS
-
+app.use(express.static('dist')) //Para hacer que Express muestre contenido estático, la página 
+// index.html y el JavaScript, etc., necesitamos un middleware integrado de Express
 app.use(express.json()) //activa el json parser que lee el cuerpo (body) de las peticiones http
 //que viene en formato json y convertirlo en un objeto javascript
 /*MIDDLEWARE
