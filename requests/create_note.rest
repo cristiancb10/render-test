@@ -1,0 +1,7 @@
+POST http://localhost:3001/api/notes
+Content-Type: application/json
+
+{
+    "content": "POSTMAN not is good in testing backend",
+    "important": true
+}
