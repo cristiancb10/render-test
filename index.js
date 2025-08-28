@@ -1,5 +1,203 @@
-//WEB Y EXPRESS Y CORS
+//USO DEL DOTENV COMO VARIABLE DE ENTORNO PARA LA CONEXION A MONGODB 
 
+require('dotenv').config()
+const cors = require('cors')
+const express = require('express') 
+const Note = require('./models/note')
+
+const app = express() 
+
+app.use(cors())
+app.use(express.static('dist')) 
+app.use(express.json()) 
+
+const requestLogger = (request, response, next) => { 
+    console.log('Method:', request.method) 
+    console.log('Path:', request.path)
+    console.log('Body:', request.body)
+    console.log('---')
+    next()
+}
+
+app.use(requestLogger)
+
+app.get('/',(request, response) => {
+    response.send('<h1>Hello world!</h1>')
+})
+
+app.get('/api/notes', (request, response) => {
+    Note.find({}).then(notes => { //usa el modelo de Note conectado a la base de datos y hace
+        response.json(notes) //un recorrido sin condiciones con una promesa y muestra los datos
+    }) //ya en formato JSON (que ya fueron convertidos)
+})
+
+app.get('/api/notes/:id', (request, response) => {
+    const id = Number(request.params.id) 
+    const note = notes.find(note => note.id === id)
+    
+    if(note) {
+        response.json(note)
+    } else {
+        response.status(404).end() 
+    }                              
+})
+
+app.delete('/api/notes/:id', (request, response) => {
+    const id = Number(request.params.id)
+    notes = notes.filter(note => note.id !== id)
+
+    response.end(204).end() 
+})
+
+const generateId = () => {
+    const maxId = notes.length > 0 
+        ? Math.max(...notes.map(note => note.id)) 
+        : 0  
+    return maxId + 1
+}
+
+app.post('/api/notes', (request, response) => {
+    const body = request.body
+
+    if(!body.content) { 
+        return response.status(400).json({
+            error: 'content missing'
+        })
+    }
+
+    const note = {
+        content: body.content,
+        important: Boolean(body.important) || false,
+        id: generateId(),
+    }
+
+    notes = notes.concat(note) 
+    response.json(note)
+})
+
+const unknownEndpoint = (request, response) => {
+    response.status(404).send({ error: 'unknown endpoint'})
+}
+
+app.use(unknownEndpoint)
+
+const PORT = process.env.PORT
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`)
+})
+
+
+//CONEXION A BASE DE DATOS MONGODB con mongoose de forma directa
+/*
+const cors = require('cors')
+const express = require('express') 
+const mongoose = require('mongoose')
+const Note = require('./models/note')
+
+const app = express() 
+const password = process.argv[2]
+
+app.use(cors())
+app.use(express.static('dist')) 
+app.use(express.json()) 
+
+const url = `mongodb+srv://fullstack:${password}@cluster0.cauhw6m.mongodb.net/NoteApp?retryWrites=true&w=majority&appName=Cluster0`
+
+mongoose.set('toJSON', { //cuando se manda como respuesta debe ser en formato JSON
+    transform: (document, returnedObject) => { //transforma el documento en uno retornado como
+        returnedObject.id = returnedObject._id.toString() //objeto y crea una propiedad id con el
+        delete returnedObject._id // valor retornado _id convertido a string y borra esta porque
+        delete returnedObject.__v //ya no se necesita , se borra el historial de versiones _v
+    }
+})
+
+mongoose.connect(url)
+
+const noteSchema = new mongoose.Schema({
+    content: String,
+    important: Boolean
+})
+
+const Note = mongoose.model('Note', noteSchema)
+
+const requestLogger = (request, response, next) => { 
+    console.log('Method:', request.method) 
+    console.log('Path:', request.path)
+    console.log('Body:', request.body)
+    console.log('---')
+    next()
+}
+
+app.use(requestLogger)
+
+app.get('/',(request, response) => {
+    response.send('<h1>Hello world!</h1>')
+})
+
+app.get('/api/notes', (request, response) => {
+    Note.find({}).then(notes => { //usa el modelo de Note conectado a la base de datos y hace
+        response.json(notes) //un recorrido sin condiciones con una promesa y muestra los datos
+    }) //ya en formato JSON (que ya fueron convertidos)
+})
+
+app.get('/api/notes/:id', (request, response) => {
+    const id = Number(request.params.id) 
+    const note = notes.find(note => note.id === id)
+    
+    if(note) {
+        response.json(note)
+    } else {
+        response.status(404).end() 
+    }                              
+})
+
+app.delete('/api/notes/:id', (request, response) => {
+    const id = Number(request.params.id)
+    notes = notes.filter(note => note.id !== id)
+
+    response.end(204).end() 
+})
+
+const generateId = () => {
+    const maxId = notes.length > 0 
+        ? Math.max(...notes.map(note => note.id)) 
+        : 0  
+    return maxId + 1
+}
+
+app.post('/api/notes', (request, response) => {
+    const body = request.body
+
+    if(!body.content) { 
+        return response.status(400).json({
+            error: 'content missing'
+        })
+    }
+
+    const note = {
+        content: body.content,
+        important: Boolean(body.important) || false,
+        id: generateId(),
+    }
+
+    notes = notes.concat(note) 
+    response.json(note)
+})
+
+const unknownEndpoint = (request, response) => {
+    response.status(404).send({ error: 'unknown endpoint'})
+}
+
+app.use(unknownEndpoint)
+
+const PORT = process.env.PORT || 3001
+app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`)
+})
+*/
+
+//WEB Y EXPRESS Y CORS
+/*
 const cors = require('cors')
 const express = require('express') //Se importa express, siendo que esta vez es una funcion
 const app = express() //que se usa para crear una aplicacion express almacenada en app
@@ -9,7 +207,8 @@ app.use(express.static('dist')) //Para hacer que Express muestre contenido está
 // index.html y el JavaScript, etc., necesitamos un middleware integrado de Express
 app.use(express.json()) //activa el json parser que lee el cuerpo (body) de las peticiones http
 //que viene en formato json y convertirlo en un objeto javascript
-/*MIDDLEWARE
+
+//MIDDLEWARE
 const requestLogger = (request, response, next) => { //las funciones de middleware deben 
     console.log('Method:', request.method) //utilizarse antes de las rutas SI SE QUIERE 
     console.log('Path:', request.path) //que sean ejecutadas por los controladores de la ruta
@@ -17,7 +216,8 @@ const requestLogger = (request, response, next) => { //las funciones de middlewa
     console.log('---')
     next()
 }
-app.use(requestLogger)*/
+
+app.use(requestLogger)
 
 let notes = [
     {
@@ -50,6 +250,7 @@ app.get('/api/notes', (request, response) => {
 app.get('/api/notes/:id', (request, response) => {
     const id = Number(request.params.id)//params es un objeto que contiene los parametros de la ruta 
     const note = notes.find(note => note.id === id)//definido en el endpoint /:id que sera un string
+    
     if(note) {
         response.json(note)
     } else {
@@ -78,7 +279,6 @@ app.post('/api/notes', (request, response) => {
         return response.status(400).json({
             error: 'content missing'
         })
-
     }
 
     const note = {
@@ -87,7 +287,8 @@ app.post('/api/notes', (request, response) => {
         id: generateId(),
     }
 
-    notes = notes.concat(note)
+    notes = notes.concat(note) 
+
 //    console.log(request.headers)
     response.json(note)
 })
@@ -103,7 +304,7 @@ const PORT = process.env.PORT || 3001
 app.listen(PORT, () => {
     console.log(`Server running on port ${PORT}`)
 })
-
+*/
 //SERVIDOR WEB SIMPLE
 
 /*const http = require('http')

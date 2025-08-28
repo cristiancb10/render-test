@@ -11,6 +11,7 @@ html-prueba
 node_modules
 dist-ssr
 *.local
+.env
 
 # Editor directories and files
 .vscode/*
