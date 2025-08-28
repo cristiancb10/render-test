@@ -31,15 +31,10 @@ app.get('/api/notes', (request, response) => {
     }) //ya en formato JSON (que ya fueron convertidos)
 })
 
-app.get('/api/notes/:id', (request, response) => {
-    const id = Number(request.params.id) 
-    const note = notes.find(note => note.id === id)
-    
-    if(note) {
-        response.json(note)
-    } else {
-        response.status(404).end() 
-    }                              
+app.get('/api/notes/:id', (request, response) => { //Note es el modelo de mongoose que representa
+    Note.findById(request.params.id).then(note => { //la coleccion de mongodb y findby busca un
+        response.json(note) //documento por su id y devuelve una promesa (then) con el documento
+    }) //y enviado este al fronted en formato JSON
 })
 
 app.delete('/api/notes/:id', (request, response) => {
@@ -49,30 +44,21 @@ app.delete('/api/notes/:id', (request, response) => {
     response.end(204).end() 
 })
 
-const generateId = () => {
-    const maxId = notes.length > 0 
-        ? Math.max(...notes.map(note => note.id)) 
-        : 0  
-    return maxId + 1
-}
-
 app.post('/api/notes', (request, response) => {
     const body = request.body
 
-    if(!body.content) { 
-        return response.status(400).json({
-            error: 'content missing'
-        })
+    if(body.content === undefined) { 
+        return response.status(400).json({ error: 'content missing' })
     }
 
-    const note = {
+    const note = new Note ({
         content: body.content,
-        important: Boolean(body.important) || false,
-        id: generateId(),
-    }
+        important: body.important || false
+    }) 
 
-    notes = notes.concat(note) 
-    response.json(note)
+    note.save().then(savedNote => { //usa mongoose para guardar la nota y despues con una promesa
+        response.json(savedNote) //para que solo envie al fronted si se ha devuelte la promesa
+    }) //savednote es el resultado devuelto y que se enviara como json al fronted
 })
 
 const unknownEndpoint = (request, response) => {
