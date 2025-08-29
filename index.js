@@ -4,12 +4,11 @@ require('dotenv').config()
 const cors = require('cors')
 const express = require('express') 
 const Note = require('./models/note')
+const { Query } = require('mongoose')
 
 const app = express() 
 
 app.use(cors())
-app.use(express.static('dist')) 
-app.use(express.json()) 
 
 const requestLogger = (request, response, next) => { 
     console.log('Method:', request.method) 
@@ -19,6 +18,21 @@ const requestLogger = (request, response, next) => {
     next()
 }
 
+//Middleware para controlar errores, tiene cuatro argumentos, SE PONE AL FINAL DE LAS RUTAS
+const errorHandler = (error, request, response, next) => {
+    console.log(error.message)
+
+    if(error.name === 'CastError') { //si es cast error informa del mismo
+        return response.status(400).send({ error: 'malformatted id' })
+    } else if (error.name === 'ValidationError') {
+        return response.status(400).send({ error: error.message})
+    }
+
+    next(error)//en otro caso de error se envia este al controlador de errores de Express
+}
+
+app.use(express.static('dist')) 
+app.use(express.json()) 
 app.use(requestLogger)
 
 app.get('/',(request, response) => {
@@ -31,25 +45,32 @@ app.get('/api/notes', (request, response) => {
     }) //ya en formato JSON (que ya fueron convertidos)
 })
 
-app.get('/api/notes/:id', (request, response) => { //Note es el modelo de mongoose que representa
-    Note.findById(request.params.id).then(note => { //la coleccion de mongodb y findby busca un
-        response.json(note) //documento por su id y devuelve una promesa (then) con el documento
-    }) //y enviado este al fronted en formato JSON
+app.get('/api/notes/:id', (request, response, next) => { //Note es el modelo de mongoose que representa
+//la coleccion de mongodb y findby busca un documento por su id y devuelve una promesa (then)
+//con el documento y enviado este al fronted en formato JSON
+    Note.findById(request.params.id)
+        .then(note => {
+            if(note) {
+                response.json(note) 
+            }
+            else {
+                response.status(404).end() //no se pudo encontrar o no es accesible
+            }
+        })
+        .catch(error => next(error))//se envia el error a la funcion next como parametro
+        //.catch(error => {
+            //console.log(error)
+            //response.status(500).end() //codigo 500 internal server error
+            ///response.status(400).send({ error: 'malformatted id'})//codigo 400 solicitud incorrecta
+        //}) //por un id el cadena ya que se espera un objeto para conertirno en string
 })
 
-app.delete('/api/notes/:id', (request, response) => {
-    const id = Number(request.params.id)
-    notes = notes.filter(note => note.id !== id)
-
-    response.end(204).end() 
-})
-
-app.post('/api/notes', (request, response) => {
+app.post('/api/notes', (request, response, next) => {
     const body = request.body
 
-    if(body.content === undefined) { 
+    /*if(!body.content) { 
         return response.status(400).json({ error: 'content missing' })
-    }
+    }*/
 
     const note = new Note ({
         content: body.content,
@@ -59,6 +80,39 @@ app.post('/api/notes', (request, response) => {
     note.save().then(savedNote => { //usa mongoose para guardar la nota y despues con una promesa
         response.json(savedNote) //para que solo envie al fronted si se ha devuelte la promesa
     }) //savednote es el resultado devuelto y que se enviara como json al fronted
+    .catch(error => next(error))
+})
+
+app.put('/api/notes/:id', (request, response, next) => {
+    const { content, important } = request.body
+
+    Note.findByIdAndUpdate(
+        request.params.id, 
+        { content, important }, //en update no se valida por defecto se debe habilitar las 
+        { new: true, runValidators: true, context: 'query' } //validaciones de ahi el query
+    )
+        .then(updatedNote => {
+            response.json(updatedNote)
+        })
+        .catch(error => next(error))
+
+    /*Note.findByIdAndUpdate(request.params.id, note, { new: true })//new:true => objeto actualizado
+        .then(updatedNote => { //ya que findbyIdUpdated por defecto entre el valor original
+            response.json(updatedNote) //por eso con new: true se da el valor nuevo para ser
+        }) //mostrado
+        .catch(error => next(error))*/
+})
+
+app.delete('/api/notes/:id', (request, response, next) => {
+    Note.findByIdAndDelete(request.params.id)
+        .then(result => {
+            if(result) {
+                response.status(204).end()
+            } else {
+                response.status(404).end()
+            }
+        })
+        .catch(error => next(error))
 })
 
 const unknownEndpoint = (request, response) => {
@@ -66,6 +120,7 @@ const unknownEndpoint = (request, response) => {
 }
 
 app.use(unknownEndpoint)
+app.use(errorHandler)
 
 const PORT = process.env.PORT
 app.listen(PORT, () => {

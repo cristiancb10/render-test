@@ -2,9 +2,24 @@ POST http://localhost:3001/api/notes
 Content-Type: application/json
 
 {
-    "content": "POSTMAN not is good in testing backend",
-    "important": true
+    "content": "2",
+    "important": "true"
 }
 
 ###
 GET http://localhost:3001/api/notes
+
+###
+GET http://localhost:3001/api/notes/68afc3a814611ad7984f8d49
+
+###
+DELETE http://localhost:3001/api/notes/68afc1042ceeb4ae213fdd54
+
+###
+PUT http://localhost:3001/api/notes/68afc31f14611ad7984f8d41
+Content-Type: application/json
+
+{
+    "content": "hola1",
+    "important": "true"
+}
